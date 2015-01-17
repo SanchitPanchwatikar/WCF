@@ -3,6 +3,7 @@
  */
 package com.fivefish.wcf.async;
 
+import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -19,6 +20,8 @@ import android.os.AsyncTask;
 
 import com.fivefish.wcf.request.BaseObject;
 import com.fivefish.wcf.request.LoginRequest;
+import com.fivefish.wcf.response.LoginResponse;
+import com.fivefish.wcf.util.ApplicationUtils;
 
 /**
  * @author Pramod
@@ -52,7 +55,7 @@ public class LoginAsync extends AsyncTask<String, String, Boolean> {
 		setLoginRequestParameter(params[0], params[1]);
 		setSoapSerializationEnvelope();
 		webServiceCall();
-		return null;
+		return LoginResponse.isLoginSuccessful();
 	}
 
 	private void init() {
@@ -78,11 +81,7 @@ public class LoginAsync extends AsyncTask<String, String, Boolean> {
 	protected void onCancelled(Boolean result) {
 		// TODO Auto-generated method stub
 		super.onCancelled(result);
-	}/*
-	 * Login
-	 * 
-	 * Passing parameter User name,Password and Context
-	 */
+	}
 
 	
 
@@ -90,14 +89,12 @@ public class LoginAsync extends AsyncTask<String, String, Boolean> {
 		try {
 			String SOAP_ACTION = "http://<YOUR SOAP NAME >";
 			htse.debug = true;
-			List<HeaderProperty> headerList1 = new ArrayList<HeaderProperty>();
-			headerList1.add(new HeaderProperty("Connection", "keep-alive"));
 			@SuppressWarnings("rawtypes")
-			List headerList = htse.call(SOAP_ACTION, envelope, headerList1);
-
+			List headerList = htse.call(SOAP_ACTION, envelope, getHeader());
 			validateResponse(headerList);
-			htse.getConnection().disconnect();
-			
+			SoapObject object = (SoapObject) envelope.bodyIn;
+			SoapObject result = (SoapObject) object.getProperty("<YourSoapObjectName>");
+			new LoginResponse(result);
 		} catch (UnknownHostException un) {
 			un.printStackTrace();
 		} catch (SocketTimeoutException e) {
@@ -108,9 +105,18 @@ public class LoginAsync extends AsyncTask<String, String, Boolean> {
 
 	}
 
-	private void validateResponse(List headerList) {
+	private List getHeader() {
+		// TODO Auto-generated method stub 
+		List<HeaderProperty> headerList1 = new ArrayList<HeaderProperty>();
+		headerList1.add(new HeaderProperty("Connection", "keep-alive"));
+		return headerList1;
+	}
+
+	@SuppressWarnings("rawtypes")
+	private void validateResponse(List headerList) throws IOException {
 		// TODO Auto-generated method stub
-		
+		htse.getConnection().disconnect();
+		ApplicationUtils.setCookie(headerList);
 	}
 
 	private void setSoapSerializationEnvelope() {
@@ -132,9 +138,7 @@ public class LoginAsync extends AsyncTask<String, String, Boolean> {
 	}
 
 	private void setLoginRequestParameter(String username,String password) {
-	
 		request.setProperty(0, password);
 		request.setProperty(1, username);
-
 	}
 }
